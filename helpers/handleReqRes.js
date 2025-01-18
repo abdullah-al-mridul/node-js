@@ -9,7 +9,10 @@ const { URL } = require("url");
 const { StringDecoder } = require("string_decoder");
 const routes = require("../routes/route");
 const notFoundHandler = require("../handlers/notFoundHandler");
-const { parseJsonToObject } = require("../helpers/utilities");
+const {
+  parseJsonToObject,
+  parseObjectToString,
+} = require("../helpers/utilities");
 
 // handler object
 const handler = {};
@@ -79,7 +82,7 @@ handler.handleReqRes = (param) => {
       };
 
       res.writeHead(statusCode, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(responsePayload));
+      res.end(parseObjectToString(responsePayload));
     });
   });
 };

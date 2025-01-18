@@ -10,6 +10,14 @@ const crypto = require("crypto");
 //utilities object
 const utilities = {};
 
+utilities.parseObjectToString = (obj) => {
+  if (typeof obj === "object" && obj !== null) {
+    return JSON.stringify(obj);
+  } else {
+    return false;
+  }
+};
+
 //parse json to object
 utilities.parseJsonToObject = (str) => {
   try {
@@ -31,6 +39,22 @@ utilities.hash = (str) => {
   } else {
     return false;
   }
+};
+
+//token
+utilities.token = (strLength) => {
+  strLength = typeof strLength === "number" ? strLength : false;
+  if (!strLength) return false;
+  const tokenCharacters =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
+  let token = "";
+  for (i = 0; i < strLength; i++) {
+    const randomCharacter = tokenCharacters.charAt(
+      Math.floor(Math.random() * tokenCharacters.length)
+    );
+    token += randomCharacter;
+  }
+  return token;
 };
 
 module.exports = utilities;

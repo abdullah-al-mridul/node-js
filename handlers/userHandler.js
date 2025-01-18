@@ -7,6 +7,7 @@
 // Modules
 const { hash } = require("../helpers/utilities");
 const { read, create, update, del } = require("../lib/data");
+const { _tokens } = require("../handlers/tokenHandler");
 
 // User handler object
 const handler = {};
@@ -96,16 +97,29 @@ handler._users.get = (reqProperties, callback) => {
       : false;
 
   if (email) {
-    // Read user data
-    read("users", email, (err, data) => {
-      if (!err && data) {
-        const userData = { ...JSON.parse(data) };
-        delete userData.password; // Remove password before sending
-        callback(200, userData);
-      } else {
-        callback(404, { msg: "User not found", email });
-      }
-    });
+    let token =
+      typeof reqProperties.headersObject.token === "string"
+        ? reqProperties.headersObject.token
+        : false;
+    if (token) {
+      _tokens.verify(token, email, (validate, data) => {
+        if (validate && data) {
+          read("users", email, (err, data) => {
+            if (!err && data) {
+              const userData = { ...JSON.parse(data) };
+              delete userData.password; // Remove password before sending
+              callback(200, userData);
+            } else {
+              callback(404, { msg: "User not found", email });
+            }
+          });
+        } else {
+          callback(403, { msg: "Forbidden" });
+        }
+      });
+    } else {
+      callback(403, { msg: "authentication failed" });
+    }
   } else {
     callback(400, { msg: "Missing required field" });
   }
@@ -134,30 +148,44 @@ handler._users.put = (reqProperties, callback) => {
       : false;
   email = typeof email === "string" && email.trim().length > 0 ? email : false;
 
-  if (firstName || lastName || password) {
-    // Check if the user exists
-    read("users", email, (err, data) => {
-      if (!err && data) {
-        const userData = { ...JSON.parse(data) };
+  if (firstName || lastName || password || email) {
+    let token =
+      typeof reqProperties.headersObject.token === "string"
+        ? reqProperties.headersObject.token
+        : false;
+    if (token) {
+      _tokens.verify(token, email, (validate, data) => {
+        if (validate && data) {
+          // Check if the user exists
+          read("users", email, (err, data) => {
+            if (!err && data) {
+              const userData = { ...JSON.parse(data) };
 
-        // Update fields if provided
-        if (firstName) userData.firstName = firstName;
-        if (lastName) userData.lastName = lastName;
-        if (password) userData.password = password;
+              // Update fields if provided
+              if (firstName) userData.firstName = firstName;
+              if (lastName) userData.lastName = lastName;
+              if (password) userData.password = password;
 
-        // Update user data
-        update("users", email, userData, (err) => {
-          if (!err) {
-            delete userData.password; // Remove password from response
-            callback(200, userData);
-          } else {
-            callback(500, { msg: "Failed to update user" });
-          }
-        });
-      } else {
-        callback(404, { msg: "User not found" });
-      }
-    });
+              // Update user data
+              update("users", email, userData, (err) => {
+                if (!err) {
+                  delete userData.password; // Remove password from response
+                  callback(200, userData);
+                } else {
+                  callback(500, { msg: "Failed to update user" });
+                }
+              });
+            } else {
+              callback(404, { msg: "User not found" });
+            }
+          });
+        } else {
+          callback(403, { msg: "Forbidden" });
+        }
+      });
+    } else {
+      callback(403, { msg: "authentication failed" });
+    }
   } else {
     callback(400, { msg: "Missing required fields" });
   }
@@ -176,14 +204,28 @@ handler._users.delete = (reqProperties, callback) => {
       : false;
 
   if (email) {
-    // Delete user data
-    del("users", email, (err) => {
-      if (!err) {
-        callback(200, { msg: "User deleted successfully", email });
-      } else {
-        callback(404, { msg: "User not found", email });
-      }
-    });
+    let token =
+      typeof reqProperties.headersObject.token === "string"
+        ? reqProperties.headersObject.token
+        : false;
+    if (token) {
+      _tokens.verify(token, email, (validate, data) => {
+        if (validate && data) {
+          // Delete user data
+          del("users", email, (err) => {
+            if (!err) {
+              callback(200, { msg: "User deleted successfully", email });
+            } else {
+              callback(404, { msg: "User not found", email });
+            }
+          });
+        } else {
+          callback(403, { msg: "Forbidden" });
+        }
+      });
+    } else {
+      callback(403, { msg: "authentication failed" });
+    }
   } else {
     callback(400, { msg: "Missing required field", email });
   }
